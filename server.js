@@ -10,7 +10,9 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 const app = express();
-const upload = multer({ dest: path.join(__dirname, 'uploads/') });
+const upload = multer({
+    storage: multer.memoryStorage()
+});
 const ZOHO_OAUTH_TOKEN = process.env.ZOHO_OAUTH_TOKEN;
 const ZOHO_SIGN_API_BASE_URL = process.env.ZOHO_SIGN_API_BASE_URL || 'https://sign.zoho.in/api/v1';
 
@@ -39,17 +41,22 @@ console.log("recipientName =", recipientName);
 console.log("recipientEmail =", recipientEmail);
 
     if (!recipientName || !recipientEmail) {
-      await deleteFile(req.file.path);
       return res.status(400).json({ success: false, message: 'recipientName and recipientEmail are required.' });
     }
 
     if (!ZOHO_OAUTH_TOKEN) {
-      await deleteFile(req.file.path);
       return res.status(500).json({ success: false, message: 'Zoho OAuth token is not configured.' });
     }
 
     const form = new FormData();
-    form.append('file', fs.createReadStream(req.file.path));
+    form.append(
+    "file",
+    req.file.buffer,
+    {
+        filename: req.file.originalname || "SignedInvoice.pdf",
+        contentType: "application/pdf"
+    }
+);
     form.append('data', JSON.stringify({
       templates: {
         template_name: `Invoice Template - ${recipientName}`,
@@ -119,7 +126,6 @@ console.log(
 
 );
 
-await deleteFile(req.file.path);
 
 return res.json({
 
@@ -132,23 +138,11 @@ return res.json({
     console.error('Create template error:', error?.response?.data || error.message || error);
 
     if (req.file && req.file.path) {
-      await deleteFile(req.file.path);
     }
 
     const message = error?.response?.data?.message || error?.message || 'Unable to create Zoho Sign template.';
     return res.status(500).json({ success: false, message });
   }
 });
-
-async function deleteFile(filePath) {
-  return new Promise((resolve) => {
-    fs.unlink(filePath, (err) => {
-      if (err) {
-        console.error('Failed to delete file:', filePath, err);
-      }
-      resolve();
-    });
-  });
-}
 
 module.exports = app;
