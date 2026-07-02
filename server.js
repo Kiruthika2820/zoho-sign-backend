@@ -11,8 +11,6 @@ dotenv.config();
 
 const app = express();
 const upload = multer({ dest: path.join(__dirname, 'uploads/') });
-
-const PORT = process.env.PORT || 3000;
 const ZOHO_OAUTH_TOKEN = process.env.ZOHO_OAUTH_TOKEN;
 const ZOHO_SIGN_API_BASE_URL = process.env.ZOHO_SIGN_API_BASE_URL || 'https://sign.zoho.in/api/v1';
 
@@ -153,6 +151,4 @@ async function deleteFile(filePath) {
   });
 }
 
-app.listen(PORT, () => {
-  console.log(`Zoho Sign backend listening on http://localhost:${PORT}`);
-});
+module.exports = app;
