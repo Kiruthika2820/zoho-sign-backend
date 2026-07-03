@@ -149,20 +149,30 @@ app.post('/create-template', upload.single('file'), async (req, res) => {
   });
 }
 });
+app.get("/getInvoicePdf", async (req, res) => {
+  try {
+    const accessToken = await getZohoAccessToken();
 
-const response = await axios.get(
-  "https://www.zohoapis.in/books/v3/organizations",
-  {
-    headers: {
-      Authorization: `Zoho-oauthtoken ${accessToken}`
-    }
+    const response = await axios.get(
+      "https://www.zohoapis.in/books/v3/organizations",
+      {
+        headers: {
+          Authorization: `Zoho-oauthtoken ${accessToken}`
+        }
+      }
+    );
+
+    return res.json(response.data);
+
+  } catch (err) {
+    console.error(err.response?.data || err.message);
+
+    return res.status(500).json({
+      success: false,
+      error: err.response?.data || err.message
+    });
   }
-);
-
-console.log(response.data);
-
-return res.json(response.data);
-
+});
 module.exports = app;
 
 if (require.main === module) {
