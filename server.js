@@ -161,16 +161,17 @@ app.get("/getInvoicePdf", async (req, res) => {
         const accessToken = await getZohoAccessToken();
 
         const response = await axios.get(
-            `https://www.zohoapis.in/books/v3/invoices/${invoiceId}`,
+    `https://www.zohoapis.in/books/v3/invoices/pdf`,
             {
-                params: {
-                    organization_id: ORGANIZATION_ID,
-                    accept: "pdf"
-                },
+               params: {
+    organization_id: ORGANIZATION_ID,
+    invoice_ids: invoiceId
+},
                 responseType: "arraybuffer",
                 headers: {
-                    Authorization: `Zoho-oauthtoken ${accessToken}`
-                }
+    Authorization: `Zoho-oauthtoken ${accessToken}`,
+    Accept: "application/pdf"
+}
             }
         );
 
