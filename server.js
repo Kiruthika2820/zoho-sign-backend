@@ -6,7 +6,46 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 
 dotenv.config();
+// --- Zoho Access Token Auto-Refresh ---
+let cachedAccessToken = null;
+let tokenExpiresAt = 0;
 
+async function getZohoAccessToken() {
+  const now = Date.now();
+
+  // Reuse cached token if still valid (refresh 2 min before actual expiry)
+  if (cachedAccessToken && now < tokenExpiresAt - 2 * 60 * 1000) {
+    return cachedAccessToken;
+  }
+
+  const accountsUrl = process.env.ZOHO_ACCOUNTS_URL || "https://accounts.zoho.in";
+
+  const response = await axios.post(
+    `${accountsUrl}/oauth/v2/token`,
+    null,
+    {
+      params: {
+        refresh_token: process.env.ZOHO_REFRESH_TOKEN,
+        client_id: process.env.ZOHO_CLIENT_ID,
+        client_secret: process.env.ZOHO_CLIENT_SECRET,
+        grant_type: "refresh_token"
+      }
+    }
+  );
+
+  if (!response.data.access_token) {
+    console.error("Token refresh failed:", response.data);
+    throw new Error("Unable to refresh Zoho access token: " + JSON.stringify(response.data));
+  }
+
+  cachedAccessToken = response.data.access_token;
+  // expires_in is in seconds (usually 3600)
+  tokenExpiresAt = now + (response.data.expires_in * 1000);
+
+  console.log("Zoho access token refreshed. Expires in", response.data.expires_in, "seconds");
+
+  return cachedAccessToken;
+}
 const app = express();
 const upload = multer({ storage: multer.memoryStorage() });
 const PORT = process.env.PORT || 3000;
@@ -71,14 +110,16 @@ app.post('/create-template', upload.single('file'), async (req, res) => {
       }
     }));
 
-    const templateResponse = await axios.post(`${ZOHO_SIGN_API_BASE_URL}/templates`, form, {
-      headers: {
-        Authorization: `Zoho-oauthtoken ${ZOHO_OAUTH_TOKEN}`,
-        ...form.getHeaders()
-      },
-      maxBodyLength: Infinity,
-      maxContentLength: Infinity
-    });
+    const accessToken = await getZohoAccessToken();
+
+const templateResponse = await axios.post(`${ZOHO_SIGN_API_BASE_URL}/templates`, form, {
+  headers: {
+    Authorization: `Zoho-oauthtoken ${accessToken}`,
+    ...form.getHeaders()
+  },
+  maxBodyLength: Infinity,
+  maxContentLength: Infinity
+});
 
     const templateData = templateResponse.data;
     return res.json({
@@ -147,29 +188,23 @@ app.post("/invoicePdf", async (req, res) => {
 
 });
 app.get("/getInvoicePdf", async (req, res) => {
-
     try {
-
         const invoiceId = req.query.invoiceId;
 
+        const accessToken = await getZohoAccessToken();
+
         const response = await axios.get(
-
             `https://www.zohoapis.in/books/v3/invoices/${invoiceId}`,
-
             {
                 params: {
                     organization_id: process.env.ORGANIZATION_ID,
                     accept: "pdf"
                 },
-
                 responseType: "arraybuffer",
-
                 headers: {
-                    Authorization:
-                        `Zoho-oauthtoken ${process.env.ZOHO_BOOKS_TOKEN}`
+                    Authorization: `Zoho-oauthtoken ${accessToken}`
                 }
             }
-
         );
 
         const pdf = Buffer.from(response.data).toString("base64");
@@ -180,18 +215,13 @@ app.get("/getInvoicePdf", async (req, res) => {
         });
 
     } catch (err) {
-
-        console.log(err.response?.data || err);
-
+        console.log(err.response?.data || err.message || err);
         res.status(500).json({
             success: false,
             message: "Unable to fetch PDF"
         });
-
     }
-
 });
-
 module.exports = app;
 
 if (require.main === module) {
