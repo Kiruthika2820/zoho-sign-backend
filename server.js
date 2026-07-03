@@ -61,7 +61,7 @@ const ZOHO_SIGN_API_BASE_URL =
   process.env.ZOHO_SIGN_API_BASE_URL || "https://sign.zoho.in/api/v1";
 
 const ORGANIZATION_ID = process.env.ORGANIZATION_ID;
-
+console.log("ORGANIZATION_ID =", ORGANIZATION_ID);
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
