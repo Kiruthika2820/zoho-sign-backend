@@ -196,7 +196,8 @@ app.get("/getInvoicePdf", async (req, res) => {
         } else {
             errorDetail = err.message || String(err);
         }
-
+console.log("Organization ID =", ORGANIZATION_ID);
+console.log("Invoice ID =", invoiceId);
         console.log("getInvoicePdf error:", errorDetail);
 
         res.status(500).json({
