@@ -1,0 +1,981 @@
+    <!DOCTYPE html>
+    <html>
+
+    <head>
+        <meta charset="UTF-8">
+        <title>Zoho Books Widget</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            body {
+                font-family: Arial, sans-serif;
+                background: #ffffff;
+                color: #222;
+                padding: 15px;
+                overflow: hidden;
+            }
+
+            .toolbar {
+                position: fixed;
+                left: 25px;
+                bottom: 25px;
+                right: auto;
+                z-index: 99999;
+            }
+
+            #downloadSignedBtn {
+                position: fixed;
+                right: 120px;
+                bottom: 50px;
+
+                padding: 12px 24px;
+                background: #2563eb;
+                color: #fff;
+                border: none;
+                border-radius: 8px;
+                cursor: pointer;
+
+                font-size: 16px;
+                font-weight: 600;
+
+                box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+
+                z-index: 99999;
+            }
+
+            #downloadSignedBtn:hover,
+            #sendPdfBtn:hover {
+                background: #1d4ed8;
+            }
+
+            #sendPdfBtn {
+                position: fixed;
+                right: 300px;
+                bottom: 50px;
+
+                padding: 12px 24px;
+                background: #2563eb;
+                color: #fff;
+                border: none;
+                border-radius: 8px;
+                cursor: pointer;
+
+                font-size: 16px;
+                font-weight: 600;
+
+                box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+
+                z-index: 99999;
+            }
+
+            #viewerArea {
+                position: relative;
+                width: 100%;
+                height: 700px;
+                overflow: auto;
+                background: #ffffff;
+                border-radius: 10px;
+                padding: 25px;
+            }
+
+            #pdfViewer {
+                position: relative;
+                width: fit-content;
+                margin: auto;
+                background-color: #ffffff;
+            }
+
+            .pdf-page {
+                position: relative;
+                margin-bottom: 25px;
+                background: #ffffff;
+            }
+
+            .pdf-page canvas {
+                display: block;
+            }
+
+            #status {
+                margin-top: 15px;
+                font-size: 14px;
+                color: #555;
+                font-weight: 600;
+            }
+
+            .signature-block-instance {
+                position: absolute;
+                width: 180px;
+                min-height: 85px;
+                background: #fff;
+                border-radius: 8px;
+                cursor: move;
+                z-index: 9999;
+                user-select: none;
+            }
+
+            .signature-block-header {
+                display: flex;
+                justify-content: flex-end;
+                align-items: center;
+                padding: 5px 6px;
+            }
+
+            .signature-block-toggle {
+                border: none;
+                background: none;
+                color: #444;
+                cursor: pointer;
+                font-size: 14px;
+            }
+
+            .signature-block-body {
+                padding: 8px;
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+            }
+
+            .signature-placeholder {
+                font-size: 12px;
+                font-weight: bold;
+                color: #000;
+                margin-bottom: 6px;
+
+            }
+
+            .signature-label {
+                font-size: 13px;
+                font-weight: bold;
+                color: #000;
+                margin-bottom: 4px;
+
+            }
+
+            .signature-block-name {
+                font-size: 13px;
+                color: #555;
+                margin-bottom: 8px;
+
+            }
+
+            .signature-pad-area {
+
+                display: none;
+
+                width: 100%;
+                height: 110px;
+
+                margin-top: 8px;
+
+                background: #ffffff;
+
+            }
+
+            .signature-pad-area canvas {
+                width: 100%;
+                height: 100%;
+                display: block;
+            }
+
+            .signature-block-collapsed .signature-block-body {
+                display: none;
+            }
+
+            .signature-block-collapsed {
+                min-height: auto;
+            }
+
+            .signature-block-resize-handle {
+                position: absolute;
+                width: 10px;
+                height: 10px;
+                background: #2563eb;
+                border-radius: 50%;
+            }
+
+            .resize-handle-n {
+                top: -5px;
+                left: 50%;
+                transform: translateX(-50%);
+                cursor: n-resize;
+            }
+
+            .resize-handle-s {
+                bottom: -5px;
+                left: 50%;
+                transform: translateX(-50%);
+                cursor: s-resize;
+            }
+
+            .resize-handle-e {
+                right: -5px;
+                top: 50%;
+                transform: translateY(-50%);
+                cursor: e-resize;
+            }
+
+            .resize-handle-w {
+                left: -5px;
+                top: 50%;
+                transform: translateY(-50%);
+                cursor: w-resize;
+            }
+
+            .signature-field {
+                position: absolute;
+                width: 180px;
+                height: 42px;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                border: 2px dashed #2563eb;
+                background: #fff;
+                border-radius: 6px;
+                cursor: grab;
+                z-index: 9999;
+            }
+
+            .signature-field-clone {
+                position: absolute;
+                z-index: 9999;
+            }
+
+            .field-title {
+                font-size: 14px;
+                font-weight: 600;
+                color: #2563eb;
+                text-align: center;
+            }
+
+            canvas {
+                image-rendering: auto;
+            }
+
+            ::-webkit-scrollbar {
+                width: 10px;
+                height: 10px;
+            }
+
+            ::-webkit-scrollbar-track {
+                background: #ececec;
+            }
+
+            ::-webkit-scrollbar-thumb {
+                background: #b7b7b7;
+                border-radius: 10px;
+            }
+
+            ::-webkit-scrollbar-thumb:hover {
+                background: #909090;
+            }
+
+            .hidden {
+                display: none !important;
+            }
+
+            .dragging {
+                opacity: .8;
+            }
+
+            .signature-selected {
+                border: 2px solid #ef4444 !important;
+            }
+
+            .pdf-loading {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                height: 700px;
+                font-size: 18px;
+                font-weight: bold;
+                color: #555;
+            }
+
+            @media print {
+
+                body {
+                    background: #fff;
+                    padding: 0;
+                }
+
+                .toolbar {
+                    display: none;
+                }
+
+                #status {
+                    display: none;
+                }
+
+            }
+        </style>
+
+    </head>
+
+    <body>
+
+        <div class="toolbar">
+            <button id="downloadSignedBtn" onclick="exportSignedPDF()">
+                Download PDF
+            </button>
+            <button id="sendPdfBtn" onclick="sendToZohoSign()">
+                Send PDF
+            </button>
+        </div>
+
+        <div id="viewerArea">
+            <div id="pdfViewer"></div>
+        </div>
+
+        <div id="status">
+            Initializing...
+        </div>
+        <script src="https://static.zohocdn.com/zohofinance/v1.0/zf_sdk.js"></script>
+
+        <script src="./js/pdf.min.js"></script>
+        <script>
+            console.log("pdfjsLib =", typeof pdfjsLib);
+        </script>
+        <script src="./js/pdf-lib.min.js"></script>
+        <script src="./js/html2canvas.min.js"></script>
+        <script src="./js/jspdf.umd.min.js"></script>
+        <script>
+
+            const organizationID = "60075278872";
+
+            const viewerArea = document.getElementById("viewerArea");
+            const pdfViewer = document.getElementById("pdfViewer");
+            const statusEl = document.getElementById("status");
+            const downloadSignedBtn = document.getElementById("downloadSignedBtn");
+
+            pdfjsLib.GlobalWorkerOptions.workerSrc =
+                "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+            let currentInvoiceData = null;
+            let currentPdfBytes = null;
+            let customerName = "Customer";
+            let dragState = null;
+            let resizeState = null;
+
+            function getCustomerName(data) {
+
+                if (!data || !data.invoice)
+                    return "Customer";
+
+                return (
+                    data.invoice.customer_name ||
+                    data.invoice.contact_name ||
+                    "Customer"
+                );
+
+            }
+
+            function setCustomerName(name) {
+
+                customerName = name || "Customer";
+
+            }
+
+            let signatureBlocks = [];
+            let dragBlock = null;
+            let dragOffsetX = 0;
+            let dragOffsetY = 0;
+
+            viewerArea.addEventListener("contextmenu", function (e) {
+
+                e.preventDefault();
+
+                const page = e.target.closest(".pdf-page");
+
+                if (!page) return;
+
+                const rect = page.getBoundingClientRect();
+
+                createSignatureBlock(
+                    page,
+                    e.clientX - rect.left,
+                    e.clientY - rect.top
+                );
+
+            });
+
+            function createSignatureBlock(page, x, y) {
+
+                const block = document.createElement("div");
+
+                block.className = "signature-block-instance";
+
+                block.style.left = x + "px";
+                block.style.top = y + "px";
+                block.innerHTML = `
+    <div class="signature-block-body">
+
+        <div class="signature-placeholder">
+            {{Signature}}
+        </div>
+
+        <div class="signature-label">
+            Customer Signature
+        </div>
+
+        <div class="signature-block-name">
+            ${customerName}
+        </div>
+
+    </div>
+    `;
+                block.addEventListener("dblclick", function () {
+
+                    const pad = block.querySelector(".signature-pad-area");
+
+                    if (pad.style.display === "none") {
+
+                        pad.style.display = "block";
+
+                    } else {
+
+                        pad.style.display = "none";
+
+                    }
+
+                });
+
+                page.appendChild(block);
+
+                signatureBlocks.push(block);
+
+                makeDraggable(block);
+
+            }
+
+            function makeDraggable(block) {
+
+                block.addEventListener("pointerdown", function (e) {
+
+                    if (e.target.tagName === "CANVAS") return;
+
+                    dragBlock = block;
+
+                    dragOffsetX = e.offsetX;
+
+                    dragOffsetY = e.offsetY;
+
+                    block.setPointerCapture(e.pointerId);
+
+                });
+
+            }
+
+            document.addEventListener("pointermove", function (e) {
+
+                if (!dragBlock) return;
+
+                const parent = dragBlock.parentElement;
+
+                const rect = parent.getBoundingClientRect();
+
+                dragBlock.style.left =
+                    (e.clientX - rect.left - dragOffsetX) + "px";
+
+                dragBlock.style.top =
+                    (e.clientY - rect.top - dragOffsetY) + "px";
+
+            });
+
+            document.addEventListener("pointerup", function () {
+
+                dragBlock = null;
+
+            });
+
+            function enableSignature(canvas) {
+
+                const ctx = canvas.getContext("2d");
+
+                ctx.lineWidth = 2;
+
+                ctx.lineCap = "round";
+
+                let drawing = false;
+
+                canvas.addEventListener("pointerdown", function (e) {
+
+                    drawing = true;
+
+                    ctx.beginPath();
+
+                    ctx.moveTo(e.offsetX, e.offsetY);
+
+                });
+
+                canvas.addEventListener("pointermove", function (e) {
+
+                    if (!drawing) return;
+
+                    ctx.lineTo(e.offsetX, e.offsetY);
+
+                    ctx.stroke();
+
+                });
+
+                canvas.addEventListener("pointerup", function () {
+
+                    drawing = false;
+
+                });
+
+                canvas.addEventListener("pointerleave", function () {
+
+                    drawing = false;
+
+                });
+
+            }
+            let pdfDoc = null;
+            let pdfScale = 1.5;
+
+            window.originalPdfBytes = null;
+
+            async function loadInvoicePDF() {
+
+                try {
+
+                    statusEl.textContent = "Loading invoice...";
+
+                    const result = await ZFAPPS.get("invoice");
+
+console.log("FULL RESULT");
+console.log(result);
+console.log("========== KEYS ==========");
+console.log(Object.keys(result));
+
+console.log("invoice =", result.invoice);
+console.log("data =", result.data);
+console.log("body =", result.body);
+console.log("message =", result.message);
+currentInvoiceData = result;
+
+const invoice = result.invoice || result;
+                    console.log("FULL RESULT");
+    console.log(result);
+
+    console.log("RESULT JSON");
+    console.log(JSON.stringify(result,null,2));
+                    if (!invoice) {
+                        throw new Error("Invoice not found");
+                    }
+
+
+                    customerName = invoice.customer_name || "Customer";
+
+
+                    const response = await ZFAPPS.request({
+
+                        url:
+                            `https://www.zohoapis.in/books/v3/invoices/pdf?organization_id=${organizationID}&invoice_ids=${invoice.invoice_id}`,
+
+                        method: "GET",
+
+                        connection_link_name: "books"
+
+                    });
+                    const base64 =
+                        response.data?.body ||
+                        response.body ||
+                        response.data;
+
+                    console.log("BASE64 =", base64);
+                    console.log("BASE64 TYPE =", typeof base64);
+                    console.log("BASE64 LENGTH =", base64 ? base64.length : null);
+                    console.log("FIRST 100 =", base64 ? base64.substring(0, 100) : null);
+
+                    if (!base64) {
+                        console.error("No PDF received", response);
+                        return;
+                    }
+
+                    const binary = atob(base64);
+
+                    const bytes = new Uint8Array(binary.length);
+
+                    for (let i = 0; i < binary.length; i++) {
+                        bytes[i] = binary.charCodeAt(i);
+                    }
+
+                    window.originalPdfBytes = bytes.slice();
+
+                    console.log("PDF Bytes =", bytes.length);
+                    console.log(
+                        String.fromCharCode(...bytes.slice(0, 8))
+                    );
+
+                    console.log("Bytes =", bytes.length);
+                    console.log("BYTE LENGTH =", bytes.length);
+                    console.log("FIRST 20 BYTES =", bytes.slice(0, 20));
+
+                    console.log("Saved PDF Bytes");
+                    console.log(window.originalPdfBytes);
+                    console.log(window.originalPdfBytes.length);
+                    console.log(String.fromCharCode(...window.originalPdfBytes.slice(0, 10)));
+
+
+                    await renderPDF(bytes);
+
+                    statusEl.textContent = "Invoice Loaded";
+
+                }
+                catch (e) {
+
+                    console.error(e);
+
+                    statusEl.textContent = "Unable to load PDF.";
+
+                }
+
+            }
+
+            async function renderPDF(pdfBytes) {
+
+                pdfViewer.innerHTML = "";
+
+                const loadingTask =
+                    pdfjsLib.getDocument({
+
+                        data: pdfBytes
+
+                    });
+
+                pdfDoc = await loadingTask.promise;
+
+                for (let pageNumber = 1;
+                    pageNumber <= pdfDoc.numPages;
+                    pageNumber++) {
+
+                    const page =
+                        await pdfDoc.getPage(pageNumber);
+
+                    const viewport =
+                        page.getViewport({
+
+                            scale: pdfScale
+
+                        });
+
+                    const pageDiv =
+                        document.createElement("div");
+
+                    pageDiv.className = "pdf-page";
+
+                    pageDiv.dataset.page = pageNumber - 1;
+
+                    pageDiv.style.position = "relative";
+
+                    pageDiv.style.margin = "20px auto";
+
+                    pageDiv.style.width =
+                        viewport.width + "px";
+
+                    pageDiv.style.height =
+                        viewport.height + "px";
+
+                    const canvas =
+                        document.createElement("canvas");
+
+                    const ctx =
+                        canvas.getContext("2d");
+
+                    canvas.width = viewport.width;
+
+                    canvas.height = viewport.height;
+
+                    pageDiv.appendChild(canvas);
+
+                    pdfViewer.appendChild(pageDiv);
+
+                    await page.render({
+
+                        canvasContext: ctx,
+
+                        viewport: viewport
+
+                    }).promise;
+
+                }
+
+            }
+
+            async function exportSignedPDF() {
+
+                statusEl.textContent = "Generating PDF...";
+
+    const signedPdf = await createSignedPdf();
+                signedPdf.save("SignedInvoice.pdf");
+                statusEl.textContent = "PDF Downloaded";
+    }
+
+    async function createSignedPdf() {
+        const canvas = await html2canvas(document.getElementById("pdfViewer"), {
+            scale: 2,
+            useCORS: true,
+            backgroundColor: "#ffffff"
+        });
+
+        const image = canvas.toDataURL("image/png");
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF("p", "mm", "a4");
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+
+        pdf.addImage(
+            image,
+            "PNG",
+            0,
+            0,
+            pageWidth,
+            pageHeight
+        );
+
+        return pdf;
+    }
+
+  async function sendToZohoSign() {
+
+    try {
+
+        statusEl.textContent = "Generating signed PDF...";
+
+        // Generate Signed PDF
+        const signedPdf = await createSignedPdf();
+        const signedBlob = signedPdf.output("blob");
+
+        // Invoice Object
+        const invoice = currentInvoiceData.invoice || currentInvoiceData;
+
+        console.log("========== INVOICE ==========");
+        console.log(invoice);
+
+        const recipientName =
+            invoice.customer_name ||
+            invoice.contact_name ||
+            customerName;
+
+        let recipientEmail =
+            invoice.customer_email ||
+            invoice.contact_email ||
+            "";
+
+        console.log("Invoice Email =", recipientEmail);
+
+        let customer = {};
+
+        // Fetch Contact if invoice doesn't contain email
+        if (!recipientEmail && invoice.customer_id) {
+
+            console.log("Fetching Customer...");
+
+            const customerResponse = await ZFAPPS.request({
+
+                url:
+                    `https://www.zohoapis.in/books/v3/contacts/${invoice.customer_id}?organization_id=${organizationID}`,
+
+                method: "GET",
+
+                connection_link_name: "books"
+
+            });
+
+            console.log("========== RAW RESPONSE ==========");
+            console.log(customerResponse);
+
+            let body = customerResponse.data?.body;
+
+// body is JSON string
+if (typeof body === "string") {
+
+    try {
+
+        body = JSON.parse(body);
+
+    }
+    catch (e) {
+
+        console.error("JSON Parse Error", e);
+
+    }
+
+}
+
+console.log("========== PARSED BODY ==========");
+console.log(body);
+
+customer = body?.contact || {};
+
+console.log("========== CUSTOMER ==========");
+console.log(customer);
+
+            console.log("========== CUSTOMER ==========");
+            console.log(customer);
+
+            recipientEmail =
+    customer.email ||
+    customer.contact_email ||
+    customer.billing_email ||
+    customer.primary_email ||
+    customer.contact_persons?.find(cp => cp.email)?.email ||
+    customer.contact_persons?.[0]?.email ||
+    "";
+    console.log("Customer Email =", customer.email);
+console.log("Contact Email =", customer.contact_email);
+console.log("Primary Email =", customer.primary_email);
+console.log("Contact Persons =", customer.contact_persons);
+
+            console.log("Email =", recipientEmail);
+
+        }
+
+        console.log("Recipient Name =", recipientName);
+        console.log("Recipient Email =", recipientEmail);
+
+        if (!recipientEmail) {
+
+            console.log("========== CUSTOMER OBJECT ==========");
+            console.log(customer);
+
+            alert("Customer email not found.");
+
+            return;
+
+        }
+
+        const formData = new FormData();
+
+        formData.append(
+            "file",
+            signedBlob,
+            "SignedInvoice.pdf"
+        );
+
+        formData.append(
+            "recipientName",
+            recipientName
+        );
+
+        formData.append(
+            "recipientEmail",
+            recipientEmail
+        );
+
+        statusEl.textContent = "Sending PDF...";
+
+        const response = await fetch(
+            "https://zoho-sign-backend-58az.vercel.app/create-template",
+            {
+                method: "POST",
+                body: formData
+            }
+        );
+
+        const result = await response.json();
+
+        console.log(result);
+
+        if (!response.ok) {
+
+            throw new Error(
+                result.message || "Backend Error"
+            );
+
+        }
+
+        alert("Template Created Successfully");
+
+        statusEl.textContent = "Done";
+
+    }
+    catch (err) {
+
+        console.error(err);
+
+        alert("Send failed : " + err.message);
+
+        statusEl.textContent = "Failed";
+
+    }
+
+}
+            async function initWidget() {
+
+                try {
+
+                    statusEl.textContent = "Initializing Widget...";
+
+                    await ZFAPPS.extension.init();
+
+                    await ZFAPPS.invoke("RESIZE", {
+
+                        width: "1300px",
+
+                        height: "700px"
+
+                    });
+
+                    await loadInvoicePDF();
+
+                    statusEl.textContent = "Ready";
+
+                    const btn = document.getElementById("downloadSignedBtn");
+                    if (btn) {
+                    }
+
+                }
+                catch (err) {
+
+                    console.error(err);
+
+                    statusEl.textContent = "Widget initialization failed.";
+
+                }
+
+            }
+
+            window.addEventListener("load", function () {
+
+                initWidget();
+
+            });
+
+
+
+            window.addEventListener("resize", function () {
+
+                signatureBlocks.forEach(function (block) {
+
+                    block.style.left = block.style.left;
+
+                    block.style.top = block.style.top;
+
+                });
+
+            });
+
+            document.addEventListener("contextmenu", function (e) {
+
+                if (!e.target.closest("#viewerArea")) {
+
+                    return;
+
+                }
+
+                e.preventDefault();
+
+            });
+        </script>
+
+
+        <script src="js/exportpdf.js"></script>
+    </body>
+
+    </html>

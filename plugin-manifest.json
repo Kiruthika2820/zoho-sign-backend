@@ -1,0 +1,34 @@
+{
+  "locale": [
+    "en"
+  ],
+  "service": "FINANCE",
+   "whiteListedDomains": [
+    "https://zoho-sign-backend-58az.vercel.app"
+  ],
+  "modules": {
+    "widgets": [
+      {
+        "location": "invoice.details.button",
+        "name": "Finance Extension",
+        "url": "/app/widget.html",
+        "logo": "/app/img/logo.png",
+        "widget_type": "modal"
+      }
+    ]
+  },
+   "cspDomains": {
+    "connect-src": [
+      "https://zoho-sign-backend-58az.vercel.app"
+    ]
+  },
+  "config": [],
+"usedConnections": [
+   {
+      "connectionLinkName": "books"
+    },
+    {
+      "connectionLinkName": "sign"
+    }
+]
+}
