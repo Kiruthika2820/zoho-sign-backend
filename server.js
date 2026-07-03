@@ -150,63 +150,18 @@ app.post('/create-template', upload.single('file'), async (req, res) => {
 }
 });
 
-app.get("/getInvoicePdf", async (req, res) => {
-    try {
-        const invoiceId = req.query.invoiceId;
-
-        if (!invoiceId) {
-            return res.status(400).json({ success: false, message: "invoiceId is required" });
-        }
-
-        const accessToken = await getZohoAccessToken();
-
-        const response = await axios.get(
-    `https://www.zohoapis.in/books/v3/invoices/pdf`,
-            {
-               params: {
-    organization_id: ORGANIZATION_ID,
-    invoice_ids: invoiceId
-},
-                responseType: "arraybuffer",
-                headers: {
-    Authorization: `Zoho-oauthtoken ${accessToken}`,
-    Accept: "application/pdf"
-}
-            }
-        );
-
-        const pdf = Buffer.from(response.data).toString("base64");
-
-        res.json({
-            success: true,
-            pdf
-        });
-
-    } catch (err) {
-        let errorDetail;
-        if (err.response?.data) {
-            // Zoho errors often come back as arraybuffer/JSON — try to decode
-            try {
-                errorDetail = Buffer.isBuffer(err.response.data)
-                    ? JSON.parse(err.response.data.toString("utf-8"))
-                    : err.response.data;
-            } catch {
-                errorDetail = err.response.data.toString?.() || err.message;
-            }
-        } else {
-            errorDetail = err.message || String(err);
-        }
-console.log("Organization ID =", ORGANIZATION_ID);
-console.log("Invoice ID =", invoiceId);
-        console.log("getInvoicePdf error:", errorDetail);
-
-        res.status(500).json({
-            success: false,
-            message: "Unable to fetch PDF",
-            debug: errorDetail
-        });
+const response = await axios.get(
+  "https://www.zohoapis.in/books/v3/organizations",
+  {
+    headers: {
+      Authorization: `Zoho-oauthtoken ${accessToken}`
     }
-});
+  }
+);
+
+console.log(response.data);
+
+return res.json(response.data);
 
 module.exports = app;
 
